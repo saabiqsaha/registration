@@ -3,14 +3,14 @@ from tkinter import ttk, messagebox
 import csv
 import os
 
-# ---------- Student Class ----------
+
 class Student:
     def __init__(self, student_id, name):
         self.student_id = student_id
         self.name = name
         self.registered_courses = set()
 
-# ---------- Course Class ----------
+
 class Course:
     def __init__(self, course_id, name, instructor, max_students=30):
         self.course_id = course_id
@@ -19,7 +19,7 @@ class Course:
         self.enrolled_students = set()
         self.max_students = max_students
 
-# ---------- Enrollment System ----------
+
 class EnrollmentSystem:
     def __init__(self):
         self.students = {}
@@ -31,7 +31,7 @@ class EnrollmentSystem:
             with open("students.csv", newline='') as f:
                 reader = csv.reader(f)
                 for row in reader:
-                    if row:  # Skip empty rows
+                    if row:
                         student_id, name, *courses = row
                         student = Student(student_id, name)
                         student.registered_courses = set(courses) if courses else set()
@@ -41,11 +41,27 @@ class EnrollmentSystem:
             with open("courses.csv", newline='') as f:
                 reader = csv.reader(f)
                 for row in reader:
-                    if row:  # Skip empty rows
+                    if row:  
                         course_id, name, instructor, max_students, *students = row
                         course = Course(course_id, name, instructor, int(max_students))
                         course.enrolled_students = set(students) if students else set()
                         self.courses[course_id] = course
+        
+       
+        for student in self.students.values():
+            
+            invalid_courses = [course_id for course_id in student.registered_courses 
+                              if course_id not in self.courses]
+            for course_id in invalid_courses:
+                student.registered_courses.remove(course_id)
+        
+        
+        for course in self.courses.values():
+            
+            invalid_students = [student_id for student_id in course.enrolled_students 
+                               if student_id not in self.students]
+            for student_id in invalid_students:
+                course.enrolled_students.discard(student_id)
 
     def save_data(self):
         with open("students.csv", "w", newline='') as f:
@@ -67,18 +83,16 @@ class EnrollmentSystem:
     def register_student(self, student_id, name):
         if student_id in self.students:
             return False, "Student already exists."
-        else:
-            self.students[student_id] = Student(student_id, name)
-            self.save_data()
-            return True, "Student registered successfully."
+        self.students[student_id] = Student(student_id, name)
+        self.save_data()
+        return True, "Student registered successfully."
 
     def add_course(self, course_id, name, instructor, max_students=30):
         if course_id in self.courses:
             return False, "Course already exists."
-        else:
-            self.courses[course_id] = Course(course_id, name, instructor, max_students)
-            self.save_data()
-            return True, "Course added successfully."
+        self.courses[course_id] = Course(course_id, name, instructor, max_students)
+        self.save_data()
+        return True, "Course added successfully."
 
     def enroll_student(self, student_id, course_id):
         if student_id not in self.students or course_id not in self.courses:
@@ -126,8 +140,7 @@ class EnrollmentSystem:
         return [(course_id, self.courses[course_id].name, self.courses[course_id].instructor)
                 for course_id in student.registered_courses if course_id in self.courses]
 
-
-# ---------- Tkinter GUI App ----------
+# Graphical User Interface
 class UniversityRegistrationApp:
     def __init__(self, root):
         self.root = root
@@ -141,47 +154,41 @@ class UniversityRegistrationApp:
         self.setup_ui()
         
     def setup_ui(self):
-        # Create a notebook for tabbed interface
+        
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        # Login/Registration Tab
+        
         self.login_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.login_frame, text="Login / Register")
         self.setup_login_ui()
         
-        # Course Registration Tab
+        
         self.courses_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.courses_frame, text="Course Registration")
         self.setup_courses_ui()
         
-        # Admin Tab
         self.admin_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.admin_frame, text="Admin")
         self.setup_admin_ui()
         
-        # Disable tabs until student logs in
         self.notebook.tab(1, state="disabled")
         
     def setup_login_ui(self):
         login_container = ttk.Frame(self.login_frame, padding=20)
         login_container.pack(fill=tk.BOTH, expand=True)
         
-        # Welcome Message
         ttk.Label(login_container, text="Welcome to University Course Registration", 
                   font=("Helvetica", 16)).pack(pady=20)
         
-        # Student ID
         ttk.Label(login_container, text="Student ID:").pack(anchor=tk.W, pady=(10, 0))
         self.student_id_entry = ttk.Entry(login_container, width=30)
         self.student_id_entry.pack(fill=tk.X, pady=(0, 10))
         
-        # Student Name
         ttk.Label(login_container, text="Student Name:").pack(anchor=tk.W, pady=(10, 0))
         self.student_name_entry = ttk.Entry(login_container, width=30)
         self.student_name_entry.pack(fill=tk.X, pady=(0, 10))
         
-        # Login and Register Buttons
         button_frame = ttk.Frame(login_container)
         button_frame.pack(pady=20)
         
@@ -192,19 +199,15 @@ class UniversityRegistrationApp:
         courses_container = ttk.Frame(self.courses_frame, padding=20)
         courses_container.pack(fill=tk.BOTH, expand=True)
         
-        # Student Info Display
         self.student_info_label = ttk.Label(courses_container, text="Not logged in", font=("Helvetica", 12))
         self.student_info_label.pack(anchor=tk.W, pady=(0, 20))
         
-        # Tabs for available and enrolled courses
         course_notebook = ttk.Notebook(courses_container)
         course_notebook.pack(fill=tk.BOTH, expand=True)
         
-        # Available Courses Tab
         available_frame = ttk.Frame(course_notebook)
         course_notebook.add(available_frame, text="Available Courses")
         
-        # Available Courses Table
         self.available_courses_tree = ttk.Treeview(available_frame, columns=("ID", "Name", "Instructor", "Enrolled", "Capacity"), show="headings")
         self.available_courses_tree.heading("ID", text="Course ID")
         self.available_courses_tree.heading("Name", text="Course Name")
@@ -220,19 +223,14 @@ class UniversityRegistrationApp:
         
         scrollbar = ttk.Scrollbar(available_frame, orient=tk.VERTICAL, command=self.available_courses_tree.yview)
         self.available_courses_tree.configure(yscroll=scrollbar.set)
-        
         self.available_courses_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
-        # Enroll Button
-        ttk.Button(available_frame, text="Enroll in Selected Course", 
-                  command=self.handle_enrollment).pack(pady=10)
+        ttk.Button(available_frame, text="Enroll in Selected Course", command=self.handle_enrollment).pack(pady=10)
         
-        # My Courses Tab
         enrolled_frame = ttk.Frame(course_notebook)
         course_notebook.add(enrolled_frame, text="My Courses")
         
-        # Enrolled Courses Table
         self.enrolled_courses_tree = ttk.Treeview(enrolled_frame, columns=("ID", "Name", "Instructor"), show="headings")
         self.enrolled_courses_tree.heading("ID", text="Course ID")
         self.enrolled_courses_tree.heading("Name", text="Course Name")
@@ -244,22 +242,16 @@ class UniversityRegistrationApp:
         
         enrolled_scrollbar = ttk.Scrollbar(enrolled_frame, orient=tk.VERTICAL, command=self.enrolled_courses_tree.yview)
         self.enrolled_courses_tree.configure(yscroll=enrolled_scrollbar.set)
-        
         self.enrolled_courses_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         enrolled_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
-        # Drop Button
-        ttk.Button(enrolled_frame, text="Drop Selected Course", 
-                  command=self.handle_drop_course).pack(pady=10)
+        ttk.Button(enrolled_frame, text="Drop Selected Course", command=self.handle_drop_course).pack(pady=10)
         
-        # Refresh and Logout buttons
         button_frame = ttk.Frame(courses_container)
         button_frame.pack(fill=tk.X, pady=10)
         
-        ttk.Button(button_frame, text="Refresh Course Lists", 
-                  command=self.refresh_course_lists).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Logout", 
-                  command=self.handle_logout).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(button_frame, text="Refresh Course Lists", command=self.refresh_course_lists).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Logout", command=self.handle_logout).pack(side=tk.RIGHT, padx=5)
         
     def setup_admin_ui(self):
         admin_container = ttk.Frame(self.admin_frame, padding=20)
@@ -267,33 +259,27 @@ class UniversityRegistrationApp:
         
         ttk.Label(admin_container, text="Add New Course", font=("Helvetica", 14)).pack(pady=(0, 10))
         
-        # Course ID
         ttk.Label(admin_container, text="Course ID:").pack(anchor=tk.W, pady=(10, 0))
         self.course_id_entry = ttk.Entry(admin_container)
         self.course_id_entry.pack(fill=tk.X, pady=(0, 5))
         
-        # Course Name
         ttk.Label(admin_container, text="Course Name:").pack(anchor=tk.W, pady=(10, 0))
         self.course_name_entry = ttk.Entry(admin_container)
         self.course_name_entry.pack(fill=tk.X, pady=(0, 5))
         
-        # Instructor
         ttk.Label(admin_container, text="Instructor:").pack(anchor=tk.W, pady=(10, 0))
         self.instructor_entry = ttk.Entry(admin_container)
         self.instructor_entry.pack(fill=tk.X, pady=(0, 5))
         
-        # Max Students
         ttk.Label(admin_container, text="Maximum Students:").pack(anchor=tk.W, pady=(10, 0))
         self.max_students_entry = ttk.Entry(admin_container)
         self.max_students_entry.pack(fill=tk.X, pady=(0, 5))
         self.max_students_entry.insert(0, "30")
         
-        # Add Course Button
         ttk.Button(admin_container, text="Add Course", command=self.handle_add_course).pack(pady=10)
     
     def handle_login(self):
         student_id = self.student_id_entry.get().strip()
-        
         if not student_id:
             messagebox.showerror("Login Error", "Please enter a Student ID")
             return
@@ -302,8 +288,8 @@ class UniversityRegistrationApp:
             self.current_student = student_id
             student_name = self.system.students[student_id].name
             self.student_info_label.config(text=f"Logged in as: {student_name} (ID: {student_id})")
-            self.notebook.tab(1, state="normal")  # Enable courses tab
-            self.notebook.select(1)  # Switch to courses tab
+            self.notebook.tab(1, state="normal")
+            self.notebook.select(1)
             self.refresh_course_lists()
             messagebox.showinfo("Login Successful", f"Welcome back, {student_name}!")
         else:
@@ -312,38 +298,30 @@ class UniversityRegistrationApp:
     def handle_register(self):
         student_id = self.student_id_entry.get().strip()
         student_name = self.student_name_entry.get().strip()
-        
         if not student_id or not student_name:
             messagebox.showerror("Registration Error", "Please enter both Student ID and Name")
             return
-            
         success, message = self.system.register_student(student_id, student_name)
-        
         if success:
             messagebox.showinfo("Registration Successful", message)
-            # Auto-login after registration
             self.current_student = student_id
             self.student_info_label.config(text=f"Logged in as: {student_name} (ID: {student_id})")
-            self.notebook.tab(1, state="normal")  # Enable courses tab
-            self.notebook.select(1)  # Switch to courses tab
+            self.notebook.tab(1, state="normal")
+            self.notebook.select(1)
             self.refresh_course_lists()
         else:
             messagebox.showerror("Registration Error", message)
     
     def refresh_course_lists(self):
-        # Clear existing data
         for item in self.available_courses_tree.get_children():
             self.available_courses_tree.delete(item)
-            
         for item in self.enrolled_courses_tree.get_children():
             self.enrolled_courses_tree.delete(item)
         
-        # Populate available courses
         for course in self.system.get_available_courses():
             course_id, name, instructor, enrolled, capacity = course
             self.available_courses_tree.insert("", "end", values=(course_id, name, instructor, f"{enrolled}/{capacity}", capacity))
         
-        # Populate enrolled courses
         if self.current_student:
             for course in self.system.get_student_courses(self.current_student):
                 course_id, name, instructor = course
@@ -361,9 +339,7 @@ class UniversityRegistrationApp:
             
         selected_item = selected_items[0]
         course_id = self.available_courses_tree.item(selected_item, "values")[0]
-        
         success, message = self.system.enroll_student(self.current_student, course_id)
-        
         if success:
             messagebox.showinfo("Enrollment", message)
             self.refresh_course_lists()
@@ -382,9 +358,7 @@ class UniversityRegistrationApp:
             
         selected_item = selected_items[0]
         course_id = self.enrolled_courses_tree.item(selected_item, "values")[0]
-        
         success, message = self.system.drop_course(self.current_student, course_id)
-        
         if success:
             messagebox.showinfo("Course Drop", message)
             self.refresh_course_lists()
@@ -396,11 +370,9 @@ class UniversityRegistrationApp:
         course_name = self.course_name_entry.get().strip()
         instructor = self.instructor_entry.get().strip()
         max_students_str = self.max_students_entry.get().strip()
-        
         if not course_id or not course_name or not instructor:
             messagebox.showerror("Error", "Please fill all course details")
             return
-        
         try:
             max_students = int(max_students_str)
             if max_students <= 0:
@@ -408,18 +380,14 @@ class UniversityRegistrationApp:
         except ValueError:
             messagebox.showerror("Error", "Maximum students must be a valid number")
             return
-            
         success, message = self.system.add_course(course_id, course_name, instructor, max_students)
-        
         if success:
             messagebox.showinfo("Course Added", message)
-            # Clear form
             self.course_id_entry.delete(0, tk.END)
             self.course_name_entry.delete(0, tk.END)
             self.instructor_entry.delete(0, tk.END)
             self.max_students_entry.delete(0, tk.END)
             self.max_students_entry.insert(0, "30")
-            # Refresh course list
             self.refresh_course_lists()
         else:
             messagebox.showerror("Error", message)
@@ -427,16 +395,15 @@ class UniversityRegistrationApp:
     def handle_logout(self):
         self.current_student = None
         self.student_info_label.config(text="Not logged in")
-        self.notebook.tab(1, state="disabled")  # Disable courses tab
-        self.notebook.select(0)  # Switch to login tab
-        # Clear course lists
+        self.notebook.tab(1, state="disabled")
+        self.notebook.select(0)
         for item in self.available_courses_tree.get_children():
             self.available_courses_tree.delete(item)
         for item in self.enrolled_courses_tree.get_children():
             self.enrolled_courses_tree.delete(item)
         messagebox.showinfo("Logout", "You have been logged out successfully")
 
-# ---------- Main Application ----------
+# main loop to run the app.
 def main():
     root = tk.Tk()
     app = UniversityRegistrationApp(root)
